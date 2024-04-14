@@ -1,0 +1,172 @@
+// Create myNewDatabase
+use myNewDatabase;
+
+// Create hotels collection
+db.createCollection("hotels");
+
+// Insert hotel data
+db.hotels.insertMany([
+  { "hotel_id": 1, "hotel_name": "Redisson" },
+  { "hotel_id": 2, "hotel_name": "Park Inn" }
+]);
+
+// Create rooms collection
+db.createCollection("rooms");
+
+// Insert room data
+db.rooms.insertMany([
+  { "room_id": 1, "hotel_id": 1, "room_size": 30, "room_capacity": 1 },
+  { "room_id": 2, "hotel_id": 1, "room_size": 50, "room_capacity": 3 },
+  { "room_id": 3, "hotel_id": 1, "room_size": 45, "room_capacity": 2 },
+  { "room_id": 4, "hotel_id": 2, "room_size": 70, "room_capacity": 4 },
+  { "room_id": 5, "hotel_id": 2, "room_size": 40, "room_capacity": 1 }
+]);
+
+// Create facilities collection
+db.createCollection("facilities");
+
+// Insert facility data
+db.facilities.insertMany([
+  { "facility_id": 1, "name": "TV" },
+  { "facility_id": 2, "name": "WiFi" },
+  { "facility_id": 3, "name": "Minibar" }
+]);
+
+// Update rooms collection to include facilities
+db.rooms.updateMany(
+  { "room_id": 1 },
+  { $set: { "facilities": [
+      { "facility_id": 1, "name": "TV" },
+      { "facility_id": 2, "name": "WiFi" }
+    ] }
+  }
+);
+db.rooms.updateMany(
+  { "room_id": 2 },
+  { $set: { "facilities": [
+      { "facility_id": 1, "name": "TV" }
+    ] }
+  }
+);
+db.rooms.updateMany(
+  { "room_id": 3 },
+  { $set: { "facilities": [
+      { "facility_id": 2, "name": "WiFi" },
+      { "facility_id": 3, "name": "Minibar" }
+    ] }
+  }
+);
+db.rooms.updateMany(
+  { "room_id": 4 },
+  { $set: { "facilities": [
+      { "facility_id": 1, "name": "TV" },
+      { "facility_id": 2, "name": "WiFi" },
+      { "facility_id": 3, "name": "Minibar" }
+    ] }
+  }
+);
+db.rooms.updateMany(
+  { "room_id": 5 },
+  { $set: { "facilities": [
+      { "facility_id": 1, "name": "TV" }
+    ] }
+  }
+);
+
+// Create guests collection
+db.createCollection("guests");
+
+// Insert guest data
+db.guests.insertMany([
+  { "guest_id": 1, "guest_name": "Hamilton", "birthday": "1980-01-01" },
+  { "guest_id": 2, "guest_name": "Gery", "birthday": "2005-03-02" },
+  { "guest_id": 3, "guest_name": "Enrika", "birthday": "1985-10-10" },
+  { "guest_id": 4, "guest_name": "Alisa", "birthday": "2010-03-08" },
+  { "guest_id": 5, "guest_name": "Lucas", "birthday": "2000-06-01" }
+]);
+
+// Create bookings collection
+db.createCollection("bookings");
+
+// Insert booking data
+db.bookings.insertMany([
+  { "room_id": 1, "guest_id": 5, "start_date": "2024-01-01", "end_date": "2024-01-07", "notes": null },
+  { "room_id": 4, "guest_id": 1, "start_date": "2024-02-20", "end_date": "2024-02-29", "notes": "with a cat" },
+  { "room_id": 3, "guest_id": 3, "start_date": "2024-05-01", "end_date": "2024-05-05", "notes": "additional pillow" }
+]);
+
+// Create booking_guests collection
+db.createCollection("booking_guests");
+
+// Insert booking_guests data
+db.booking_guests.insertMany([
+  { "booking_id": 2, "guest_id": 2 },
+  { "booking_id": 2, "guest_id": 4 },
+  { "booking_id": 2, "guest_id": 3 },
+  { "booking_id": 3, "guest_id": 5 }
+]);
+
+
+
+//—————————Tasks—————————
+
+// 1. Retrieve information on reservations made by Lucas.
+var lucas = db.guests.findOne({ "guest_name": "Lucas" });
+var lucasBooking = db.bookings.findOne({ "guest_id": lucas.guest_id });
+if (lucasBooking) {
+    print("\nReservation made by Lucas:");
+    printjson(lucasBooking);
+} else {
+    print("\nNo reservations found for Lucas.");
+}
+
+// 2. Enrika cancelled her reservation, remove this data from the database.
+var enrika = db.guests.findOne({ "guest_name": "Enrika" });
+db.bookings.deleteMany({ "guest_id": enrika.guest_id });
+
+// 3. Add a note to the reservation made by Lucas that he will arrive after 10 pm.
+var lucas = db.guests.findOne({ "guest_name": "Lucas" });
+var lucasBooking = db.bookings.findOne({ "guest_id": lucas.guest_id });
+db.bookings.updateOne({ "_id": lucasBooking._id }, { $set: { "notes": "Will arrive after 10 pm" } });
+
+// 4. Update TV to Flat-screen TV in Redisson hotel.
+var redissonHotel = db.hotels.findOne({ "hotel_name": "Redisson" });
+var redissonRooms = db.rooms.find({ "hotel_id": redissonHotel.hotel_id });
+redissonRooms.forEach(function(room) {
+  var updatedFacilities = room.facilities.map(function(facility) {
+    if (facility.name === "TV") {
+      facility.name = "Flat-screen TV";
+    }
+    return facility;
+  });
+  db.rooms.updateOne({ "_id": room._id }, { $set: { "facilities": updatedFacilities } });
+});
+
+// 5. Calculate how many bookings were made in each hotel.
+db.bookings.aggregate([
+    {
+        $lookup: {
+            from: "rooms",
+            localField: "room_id",
+            foreignField: "room_id",
+            as: "room"
+        }
+    },
+    {
+        $lookup: {
+            from: "hotels",
+            localField: "room.hotel_id",
+            foreignField: "hotel_id",
+            as: "hotel"
+        }
+    },
+    {
+        $unwind: "$hotel"
+    },
+    {
+        $group: {
+            _id: "$hotel.hotel_name",
+            totalBookings: { $sum: 1 }
+        }
+    }
+]);
