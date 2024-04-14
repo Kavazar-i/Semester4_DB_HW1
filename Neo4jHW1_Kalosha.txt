@@ -1,0 +1,126 @@
+// Clean up
+MATCH (n) DETACH DELETE n;
+
+// Create users
+CREATE
+(John:User {user_id: 1, user_name: "John"}),
+(Mary:User {user_id: 2, user_name: "Mary"}),
+(Adrian:User {user_id: 3, user_name: "Adrian"}),
+(Claire:User {user_id: 4, user_name: "Claire"}),
+(Holly:User {user_id: 5, user_name: "Holly"});
+
+// Create photos
+CREATE
+(:Photo {photo_file: "file_name1", photo_id: 1}),
+(:Photo {photo_file: "file_name2", photo_id: 2}),
+(:Photo {photo_file: "file_name3", photo_id: 3}),
+(:Photo {photo_file: "file_name4", photo_id: 4}),
+(:Photo {photo_file: "file_name5", photo_id: 5}),
+(:Photo {photo_file: "file_name6", photo_id: 6}),
+(:Photo {photo_file: "file_name7", photo_id: 7}),
+(:Photo {photo_file: "file_name8", photo_id: 8});
+
+// Create follows relationships
+MATCH (follower:User), (followee:User)
+WHERE follower.user_id <> followee.user_id
+AND (follower.user_name = "John" AND followee.user_name IN ["Mary", "Adrian", "Claire"])
+OR (follower.user_name = "Mary" AND followee.user_name IN ["John", "Adrian"])
+OR (follower.user_name = "Adrian" AND followee.user_name IN ["Mary", "Claire"])
+OR (follower.user_name = "Claire" AND followee.user_name IN ["John", "Adrian"])
+OR (follower.user_name = "Holly" AND followee.user_name = "Adrian")
+CREATE (follower)-[:FOLLOWS]->(followee);
+
+// Create uploaded_by relationships
+MATCH (u:User), (p:Photo)
+WHERE (u.user_name = "John" AND p.photo_id IN [1, 4])
+OR (u.user_name = "Mary" AND p.photo_id IN [3, 8])
+OR (u.user_name = "Adrian" AND p.photo_id IN [5])
+OR (u.user_name = "Claire" AND p.photo_id IN [ 2, 6, 7])
+OR (u.user_name = "Holly" AND p.photo_id IN [])
+CREATE (u)-[:UPLOADED_BY]->(p);
+
+// Create comments
+CREATE (:Comment {comment_text: "Good", comment_id: 1}),
+       (:Comment {comment_text: "Excellent", comment_id: 2}),
+       (:Comment {comment_text: "Not bad", comment_id: 3}),
+       (:Comment {comment_text: "Ok", comment_id: 4}),
+       (:Comment {comment_text: "Cool", comment_id: 5});
+
+// Create commented relationships
+MATCH (u:User), (p:Photo), (c:Comment)
+WHERE (u.user_name = "John" AND p.photo_id = 8 AND c.comment_id = 4)
+OR (u.user_name = "John" AND p.photo_id = 3 AND c.comment_id = 2)
+OR (u.user_name = "Mary" AND p.photo_id = 8 AND c.comment_id = 5)
+OR (u.user_name = "Adrian" AND p.photo_id = 2 AND c.comment_id = 1)
+OR (u.user_name = "Holly" AND p.photo_id = 3 AND c.comment_id = 3)
+CREATE (u)-[:COMMENTED]->(p)-[:HAS_COMMENT {commentator_id: u.user_id}]->(c);
+
+// Create liked relationships
+MATCH (u1:User {user_id: 1, user_name: "John"}), (p1:Photo {photo_file: "file_name7", photo_id: 7})
+MERGE (u1)-[:LIKED {dt: "02/19/2024"}]->(p1);
+
+MATCH (u2:User {user_id: 1, user_name: "John"}), (p2:Photo {photo_file: "file_name2", photo_id: 2})
+MERGE (u2)-[:LIKED {dt: "01/25/2024"}]->(p2);
+
+MATCH (u3:User {user_id: 2, user_name: "Mary"}), (p3:Photo {photo_file: "file_name6", photo_id: 6})
+MERGE (u3)-[:LIKED {dt: "02/10/2024"}]->(p3);
+
+MATCH (u4:User {user_id: 2, user_name: "Mary"}), (p4:Photo {photo_file: "file_name7", photo_id: 7})
+MERGE (u4)-[:LIKED {dt: "01/26/2024"}]->(p4);
+
+MATCH (u5:User {user_id: 2, user_name: "Mary"}), (p5:Photo {photo_file: "file_name1", photo_id: 1})
+MERGE (u5)-[:LIKED {dt: "01/26/2024"}]->(p5);
+
+MATCH (u6:User {user_id: 3, user_name: "Adrian"}), (p6:Photo {photo_file: "file_name7", photo_id: 7})
+MERGE (u6)-[:LIKED {dt: "01/12/2024"}]->(p6);
+
+MATCH (u7:User {user_id: 3, user_name: "Adrian"}), (p7:Photo {photo_file: "file_name8", photo_id: 8})
+MERGE (u7)-[:LIKED {dt: "02/11/2024"}]->(p7);
+
+MATCH (u8:User {user_id: 3, user_name: "Adrian"}), (p8:Photo {photo_file: "file_name1", photo_id: 1})
+MERGE (u8)-[:LIKED {dt: "03/13/2024"}]->(p8);
+
+MATCH (u9:User {user_id: 4, user_name: "Claire"}), (p9:Photo {photo_file: "file_name8", photo_id: 8})
+MERGE (u9)-[:LIKED {dt: "03/18/2024"}]->(p9);
+
+MATCH (u10:User {user_id: 4, user_name: "Claire"}), (p10:Photo {photo_file: "file_name3", photo_id: 3})
+MERGE (u10)-[:LIKED {dt: "01/25/2024"}]->(p10);
+
+MATCH (u11:User {user_id: 5, user_name: "Holly"}), (p11:Photo {photo_file: "file_name7", photo_id: 7})
+MERGE (u11)-[:LIKED {dt: "03/05/2024"}]->(p11);
+
+MATCH (u12:User {user_id: 5, user_name: "Holly"}), (p12:Photo {photo_file: "file_name1", photo_id: 1})
+MERGE (u12)-[:LIKED {dt: "02/04/2024"}]->(p12);
+
+MATCH (u13:User {user_id: 5, user_name: "Holly"}), (p13:Photo {photo_file: "file_name3", photo_id: 3})
+MERGE (u13)-[:LIKED {dt: "03/15/2024"}]->(p13);
+
+MATCH (u14:User {user_id: 5, user_name: "Holly"}), (p14:Photo {photo_file: "file_name4", photo_id: 4})
+MERGE (u14)-[:LIKED {dt: "03/20/2024"}]->(p14);
+
+
+
+
+//—————————Task—————————
+// 1. Write a command which changes the text of the comment from Holly under the photo named 'file_name3' to 'Very Good'.
+MATCH (u:User {user_name: "Holly"})-[:COMMENTED]->(p:Photo {photo_file: "file_name3"})-[:HAS_COMMENT{commentator_id: u.user_id}]->(c:Comment)
+SET c.comment_text = "Very Good"
+RETURN c;
+
+// 2. Write a command that will do John has unfollowed all the users he used to follow.
+MATCH (john:User {user_name: "John"})-[r:FOLLOWS]->(followee:User)
+DELETE r;
+
+// 3. Write a command that will display all photos of the users whom Mary follows to.
+MATCH (mary:User {user_name: "Mary"})-[:FOLLOWS]->(followed:User)-[:UPLOADED_BY]->(p:Photo)
+RETURN p;
+
+// 4. Write a command that returns the count of likes placed on Claire's photos.
+MATCH (claire:User {user_name: "Claire"})-[:UPLOADED_BY]->(p:Photo)<-[l:LIKED]-()
+RETURN COUNT(l) AS LikesOnClairePhotos;
+
+// 5. If Claire follows John and Adrian, and Holly also follows Adrian, we can assume that Holly might be interested in following John. Write a command that will return the users we could recommend Holly to follow.
+MATCH (holly:User {user_name: "Holly"})-[:FOLLOWS]->(adrian:User)-[:FOLLOWS]->(recommended:User)
+WHERE NOT (holly)-[:FOLLOWS]->(recommended) AND recommended <> holly
+RETURN recommended;
+
